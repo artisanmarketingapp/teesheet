@@ -78,9 +78,9 @@ export async function searchTeeTimes(params: SearchParams): Promise<TeeTime[]> {
 
   const allTimes = MOCK_COURSES.flatMap(c => generateTeeTimes(c, params.date));
 
-  return allTimes.filter(t => {
+  const filtered = allTimes.filter(t => {
     const time = t.teeTime.split("T")[1].slice(0,5);
-    const matchesLocation = !params.location ||
+    const matchesLocation =
       t.city.toLowerCase().includes(params.location.toLowerCase()) ||
       t.state.toLowerCase().includes(params.location.toLowerCase()) ||
       t.courseName.toLowerCase().includes(params.location.toLowerCase());
@@ -91,6 +91,21 @@ export async function searchTeeTimes(params: SearchParams): Promise<TeeTime[]> {
     const matchesPrice    = t.price <= params.maxPrice;
     return matchesLocation && matchesTimeFrom && matchesTimeTo && matchesPlayers && matchesHoles && matchesPrice;
   });
+
+  // In mock mode, fall back to all results if location doesn't match any mock courses
+  if (params.location && filtered.length === 0) {
+    return allTimes.filter(t => {
+      const time = t.teeTime.split("T")[1].slice(0,5);
+      const matchesTimeFrom = !params.timeFrom || time >= params.timeFrom;
+      const matchesTimeTo   = !params.timeTo   || time <= params.timeTo;
+      const matchesPlayers  = t.availableSpots >= params.players;
+      const matchesHoles    = params.holes === "any" || String(t.holes) === params.holes;
+      const matchesPrice    = t.price <= params.maxPrice;
+      return matchesTimeFrom && matchesTimeTo && matchesPlayers && matchesHoles && matchesPrice;
+    });
+  }
+
+  return filtered;
 }
 
 export async function getTeeTimeById(id: string): Promise<TeeTime | null> {
