@@ -1,0 +1,90 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                  String   @id @default(uuid())
+  email               String   @unique
+  fullName            String
+  phone               String?
+  hashedPassword      String
+  platformLoginToken  String?
+  loyaltyTier         String   @default("bronze")
+  pointsBalance       Int      @default(0)
+  createdAt           DateTime @default(now())
+  lastLoginAt         DateTime?
+
+  bookings            Booking[]
+  pointsLedger        PointsLedger[]
+  waitlistEntries     WaitlistEntry[]
+}
+
+model Course {
+  id               String   @id @default(uuid())
+  name             String
+  city             String
+  state            String
+  zip              String
+  platform         String
+  externalCourseId String
+  websiteUrl       String?
+  baseGreenFee     Decimal
+  isActive         Boolean  @default(true)
+  syncedAt         DateTime @default(now())
+
+  bookings         Booking[]
+  waitlistEntries  WaitlistEntry[]
+}
+
+model Booking {
+  id                String   @id @default(uuid())
+  userId            String
+  courseId          String
+  teeTime           DateTime
+  numPlayers        Int
+  amountPaid        Decimal
+  bookingFee        Decimal
+  status            String   @default("confirmed")
+  externalBookingId String?
+  platform          String
+  pointsEarned      Int      @default(0)
+  createdAt         DateTime @default(now())
+
+  user              User     @relation(fields: [userId], references: [id])
+  course            Course   @relation(fields: [courseId], references: [id])
+  pointsLedger      PointsLedger?
+}
+
+model PointsLedger {
+  id          String   @id @default(uuid())
+  userId      String
+  bookingId   String?  @unique
+  pointsDelta Int
+  eventType   String
+  description String
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id])
+  booking     Booking? @relation(fields: [bookingId], references: [id])
+}
+
+model WaitlistEntry {
+  id           String   @id @default(uuid())
+  userId       String
+  courseId     String
+  desiredDate  DateTime
+  windowStart  String
+  windowEnd    String
+  numPlayers   Int
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  alertedAt    DateTime?
+
+  user         User     @relation(fields: [userId], references: [id])
+  course       Course   @relation(fields: [courseId], references: [id])
+}
